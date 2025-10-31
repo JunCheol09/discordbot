@@ -8,7 +8,9 @@ logger = logging.getLogger("discord-bot")
 
 # 인텐트 설정
 intents = discord.Intents.default()
-intents.message_content = True
+intents.members = True
+intents.message_content = True  # 선택
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
@@ -66,3 +68,31 @@ if __name__ == "__main__":
         raise RuntimeError("DISCORD_TOKEN 환경변수가 없습니다.")
     bot.run(token)
 
+WELCOME_CHANNEL_ID = int(os.getenv("WELCOME_CHANNEL_ID", "0"))  # 환경변수로 관리 권장
+
+
+@bot.event
+async def on_member_join(member: discord.Member):
+    # “닉네임 + 환영합니다”
+    msg = f"{member.mention} 님 환영합니다! 🎉"
+
+    # 채널 ID가 설정되어 있으면 그 채널로
+    if WELCOME_CHANNEL_ID:
+        channel = member.guild.get_channel(WELCOME_CHANNEL_ID)
+        if channel:
+            await channel.send(msg)
+            return
+
+    # 채널 ID를 안 썼다면, 이름이 'welcome'인 텍스트 채널을 찾아서 전송
+    for ch in member.guild.text_channels:
+        if ch.name.lower() == "welcome":
+            await ch.send(msg)
+            return
+        
+@bot.event
+async def on_member_join(member: discord.Member):
+    try:
+        await member.send(f"{member.display_name} 님 환영합니다! 서버 규칙을 꼭 확인해주세요 🙌")
+    except discord.Forbidden:
+        # DM을 막아둔 사용자면 실패할 수 있어요. 무시해도 됩니다.
+        pass
